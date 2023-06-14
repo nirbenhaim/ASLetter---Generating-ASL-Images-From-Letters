@@ -17,12 +17,11 @@ def print_results(path):
         IMG_SIZE *= x
 
     # save model
-    PATH = "model.pth"
     model = GAN(LATENT_DIM, IMG_SIZE).to(device)
     if torch.cuda.is_available() == False:
-        model.load_state_dict(torch.load(PATH, map_location=torch.device('cpu')))
+        model.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
     else:
-        model.load_state_dict(torch.load(PATH))
+        model.load_state_dict(torch.load(path))
 
     # visualization
     model.eval()

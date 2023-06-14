@@ -14,7 +14,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 CLASS_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 
-def train_model():
+def train_model(data_path):
     # setting
     # Device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -32,35 +32,38 @@ def train_model():
         IMG_SIZE *= x
 
 
+    file_path_train = os.path.join(data_path, 'sign_mnist_train.csv')
+    file_path_test = os.path.join(data_path, 'sign_mnist_test.csv')
+
     #dataset
     # to 0-1 range
-    train_dataset = CustomDataset(csv_file='sign_mnist_train.csv')
+    train_dataset = CustomDataset(csv_file=file_path_train)
     
-    test_dataset = CustomDataset(csv_file='sign_mnist_test.csv')
+    test_dataset = CustomDataset(csv_file=file_path_test)
 
     train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     test_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-    # Checking the dataset
-    for images, labels in train_loader:
-        print('Image batch dimensions:', images.shape)
-        print('Image label dimensions:', labels.shape)
-        break
+    # # Checking the dataset
+    # for images, labels in train_loader:
+    #     print('Image batch dimensions:', images.shape)
+    #     print('Image label dimensions:', labels.shape)
+    #     break
 
-    # let's see some digits
-    examples = enumerate(test_loader)
-    batch_idx, (example_data, example_targets) = next(examples)
-    print("shape: \n", example_data.shape)
-    fig = plt.figure()
-    for i in range(6):
-        ax = fig.add_subplot(2,3,i+1)
-        ax.imshow(example_data[i], cmap='gray', interpolation='none')
-        ax.set_title("Ground Truth: {}".format(CLASS_LIST[int(example_targets[i])]))
-        ax.set_axis_off()
-    plt.tight_layout()
+    # # let's see some digits
+    # examples = enumerate(test_loader)
+    # batch_idx, (example_data, example_targets) = next(examples)
+    # print("shape: \n", example_data.shape)
+    # fig = plt.figure()
+    # for i in range(6):
+    #     ax = fig.add_subplot(2,3,i+1)
+    #     ax.imshow(example_data[i], cmap='gray', interpolation='none')
+    #     ax.set_title("Ground Truth: {}".format(CLASS_LIST[int(example_targets[i])]))
+    #     ax.set_axis_off()
+    # plt.tight_layout()
 
-    plt.show()
+    # plt.show()
 
     # constant the seed
     torch.manual_seed(random_seed)

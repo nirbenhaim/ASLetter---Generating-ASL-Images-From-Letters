@@ -7,16 +7,23 @@ class GAN(torch.nn.Module):
 
         # generator: z [vector] -> image [matrix]
         self.generator = nn.Sequential(
+            # nn.Linear(latent_dim, 128),
+            # nn.LeakyReLU(inplace=True),
+            # nn.Dropout(p=0.5),
+            # nn.Linear(128, img_size),
+            # nn.Tanh()
             nn.Linear(latent_dim, 128),
-            nn.LeakyReLU(inplace=True),
-            nn.Dropout(p=0.5),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
             nn.Linear(128, img_size),
-            nn.Tanh()
+            nn.BatchNorm1d(img_size),
+            nn.ReLU(),
         )
 
         # discriminator: image [matrix] -> label (0-fake, 1-real)
         self.discriminator = nn.Sequential(
             nn.Linear(img_size, 128),
+            nn.BatchNorm1d(128), # new
             nn.LeakyReLU(inplace=True),
             nn.Dropout(p=0.5),
             nn.Linear(128, 1),

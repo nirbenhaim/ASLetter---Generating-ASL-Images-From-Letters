@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import torch
 from model import GAN
 
-def print_results(path):
+def print_results(model_path):
     # setting
     # Device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -19,9 +19,9 @@ def print_results(path):
     # save model
     model = GAN(LATENT_DIM, IMG_SIZE).to(device)
     if torch.cuda.is_available() == False:
-        model.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
+        model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     else:
-        model.load_state_dict(torch.load(path))
+        model.load_state_dict(torch.load(model_path))
 
     # visualization
     model.eval()

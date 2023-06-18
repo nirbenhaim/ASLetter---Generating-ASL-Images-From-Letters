@@ -38,6 +38,6 @@ if __name__ == "__main__":
     if args.eval == True:
         print_results(args.model_path)
     else:
-       train_model(args.data_path)
+       train_model(args.data_path, args.model_path)
        print_results(args.model_path)
 

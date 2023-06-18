@@ -1,0 +1,35 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Eval True",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "args": [
+                "--eval", "True",
+                "--model_path", "model.pth",
+                "--data_path", "."
+
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Eval False",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "args": [
+                "--model_path", "model.pth",
+                "--data_path", "."
+
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+    ]
+}

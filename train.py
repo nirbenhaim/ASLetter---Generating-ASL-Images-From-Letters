@@ -14,7 +14,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 CLASS_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 
-def train_model(data_path):
+def train_model(data_path, model_path):
     # setting
     # Device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -41,9 +41,16 @@ def train_model(data_path):
     
     test_dataset = CustomDataset(csv_file=file_path_test)
 
+    all_data = train_dataset
+
+    for test_data in test_dataset.data:
+        all_data.append(test_data)
+
     train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
-    test_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    test_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=True)
+
+    all_data_loader = DataLoader(dataset=all_data, batch_size=BATCH_SIZE, shuffle=True)
 
     # # Checking the dataset
     # for images, labels in train_loader:
@@ -73,8 +80,8 @@ def train_model(data_path):
 
     # optimizers: we have one for the generator and one for the discriminator
     # that way, we can update only one of the modules, while the other one is "frozen"
-    optim_gener = torch.optim.Adam(model.generator.parameters(), lr=generator_learning_rate)
-    optim_discr = torch.optim.Adam(model.discriminator.parameters(), lr=discriminator_learning_rate)
+    optim_gener = torch.optim.SGD(model.generator.parameters(), lr=generator_learning_rate)
+    optim_discr = torch.optim.SGD(model.discriminator.parameters(), lr=discriminator_learning_rate)
 
     # training
     start_time = time.time()
@@ -83,7 +90,7 @@ def train_model(data_path):
 
     for epoch in range(NUM_EPOCHS):
         model = model.train()
-        for batch_idx, (features, targets) in enumerate(train_loader):
+        for batch_idx, (features, targets) in enumerate(all_data_loader):
             features = (features - 0.5) * 2.0 # normalize between [-1, 1]
             features = features.view(-1, IMG_SIZE).to(device)
             targets = targets.to(device)
@@ -135,15 +142,14 @@ def train_model(data_path):
 
             ### LOGGING
             if not batch_idx % 100:
-                print ('Epoch: %03d/%03d | Batch %03d/%03d | Gen/Dis Loss: %.4f/%.4f'%(epoch+1, NUM_EPOCHS, batch_idx, len(train_loader), gener_loss, discr_loss))
+                print ('Epoch: %03d/%03d | Batch %03d/%03d | Gen/Dis Loss: %.4f/%.4f'%(epoch+1, NUM_EPOCHS, batch_idx, len(all_data_loader), gener_loss, discr_loss))
 
         print('Time elapsed: %.2f min' % ((time.time() - start_time)/60))
 
     print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))
 
     # save model
-    PATH = "model.pth"
-    torch.save(model.state_dict(), PATH)
+    torch.save(model.state_dict(), model_path)
 
     # Evaluation
 
@@ -162,7 +168,7 @@ def train_model(data_path):
     # Set scond x-axis
     ax2 = ax1.twiny()
     newlabel = list(range(NUM_EPOCHS+1))
-    iter_per_epoch = len(train_loader)
+    iter_per_epoch = len(all_data_loader)
     newpos = [e*iter_per_epoch for e in newlabel]
 
     ax2.set_xticklabels(newlabel[::10])

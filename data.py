@@ -23,3 +23,6 @@ class CustomDataset(Dataset):
         inputs = inputs.to(torch.float32)
         target = torch.tensor(float(sample[0]))
         return inputs, target
+    
+    def append(self, new_row):
+        self.data.append(new_row)

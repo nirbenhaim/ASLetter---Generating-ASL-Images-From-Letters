@@ -12,7 +12,7 @@ if torch.cuda.is_available():
 # from data_augmentation import data_augmentation    
 from model import GAN
 from train import train_model
-from GAN_load import print_results
+from util import print_results
 import argparse
 import os
 from import_dataset import download_mnist_sign_language_train_set, download_mnist_sign_language_test_set

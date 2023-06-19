@@ -12,7 +12,7 @@ from model import GAN
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
-from data_augmentation import augment_image
+from util import wasserstein_loss
 
 CLASS_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 
@@ -95,8 +95,8 @@ def train_model(data_path, model_path):
 
     # optimizers: we have one for the generator and one for the discriminator
     # that way, we can update only one of the modules, while the other one is "frozen"
-    optim_gener = torch.optim.SGD(model.generator.parameters(), lr=generator_learning_rate)
-    optim_discr = torch.optim.SGD(model.discriminator.parameters(), lr=discriminator_learning_rate)
+    optim_gener = torch.optim.RMSprop(model.generator.parameters(), lr=generator_learning_rate)
+    optim_discr = torch.optim.RMSprop(model.discriminator.parameters(), lr=discriminator_learning_rate)
 
     # training
     start_time = time.time()
@@ -129,7 +129,7 @@ def train_model(data_path, model_path):
 
             # here we use the `valid` labels because we want the discriminator to "think"
             # the generated samples are real
-            gener_loss = F.binary_cross_entropy(discr_pred, valid)
+            gener_loss = wasserstein_loss(discr_pred, valid)
 
             optim_gener.zero_grad()
             gener_loss.backward()
@@ -140,11 +140,11 @@ def train_model(data_path, model_path):
             # --------------------------
 
             discr_pred_real = model.discriminator_forward(features.view(-1, IMG_SIZE))
-            real_loss = F.binary_cross_entropy(discr_pred_real, valid)
+            real_loss = wasserstein_loss(discr_pred_real, valid)
 
             # here we use the `fake` labels when training the discriminator
             discr_pred_fake = model.discriminator_forward(generated_features.detach())
-            fake_loss = F.binary_cross_entropy(discr_pred_fake, fake)
+            fake_loss = wasserstein_loss(discr_pred_fake, fake)
 
             discr_loss = 0.5 * (real_loss + fake_loss)
             optim_discr.zero_grad()

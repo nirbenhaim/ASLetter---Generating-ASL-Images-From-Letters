@@ -9,6 +9,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 if torch.cuda.is_available():
     torch.backends.cudnn.deterministic = True
+# from data_augmentation import data_augmentation    
 from model import GAN
 from train import train_model
 from GAN_load import print_results

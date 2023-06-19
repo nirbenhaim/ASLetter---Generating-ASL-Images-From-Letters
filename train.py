@@ -12,6 +12,8 @@ from model import GAN
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
+from data_augmentation import augment_image
+
 CLASS_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 
 def train_model(data_path, model_path):
@@ -35,20 +37,33 @@ def train_model(data_path, model_path):
     file_path_train = os.path.join(data_path, 'sign_mnist_train.csv')
     file_path_test = os.path.join(data_path, 'sign_mnist_test.csv')
 
-    #dataset
+    data_augmentation = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.RandomRotation(10)
+    ])
+
+    #datasetW
     # to 0-1 range
     train_dataset = CustomDataset(csv_file=file_path_train)
+    # train_dataset_augmented = CustomDataset(csv_file=file_path_train, transformation=data_augmentation)
     
-    test_dataset = CustomDataset(csv_file=file_path_test)
+    test_dataset = CustomDataset(csv_file=file_path_test) 
+    # test_dataset_augmented = CustomDataset(csv_file=file_path_train, transformation=data_augmentation) 
 
     all_data = train_dataset
 
     for test_data in test_dataset.data:
         all_data.append(test_data)
+    # for test_data_aug in test_dataset_augmented.data:
+    #     all_data.append(test_data_aug)
+    # for train_data_aug in train_dataset_augmented.data:
+    #     all_data.append(train_data_aug)
 
-    train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
-    test_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    # train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    # train_loader_augmented = DataLoader(dataset=train_dataset_augmented, batch_size=BATCH_SIZE, shuffle=True)
+    # test_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    # test_loader_augmented = DataLoader(dataset=test_dataset_augmented, batch_size=BATCH_SIZE, shuffle=True)
 
     all_data_loader = DataLoader(dataset=all_data, batch_size=BATCH_SIZE, shuffle=True)
 
@@ -59,13 +74,13 @@ def train_model(data_path, model_path):
     #     break
 
     # # let's see some digits
-    # examples = enumerate(test_loader)
+    # examples = enumerate(train_loader)
     # batch_idx, (example_data, example_targets) = next(examples)
     # print("shape: \n", example_data.shape)
     # fig = plt.figure()
     # for i in range(6):
     #     ax = fig.add_subplot(2,3,i+1)
-    #     ax.imshow(example_data[i], cmap='gray', interpolation='none')
+    #     ax.imshow(example_data[i].reshape(28,28), cmap='gray', interpolation='none')
     #     ax.set_title("Ground Truth: {}".format(CLASS_LIST[int(example_targets[i])]))
     #     ax.set_axis_off()
     # plt.tight_layout()

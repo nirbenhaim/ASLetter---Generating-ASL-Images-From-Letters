@@ -12,12 +12,14 @@ class GAN(torch.nn.Module):
             # nn.Dropout(p=0.5),
             # nn.Linear(128, img_size),
             # nn.Tanh()
+
             nn.Linear(latent_dim, 128),
             nn.BatchNorm1d(128),
-            nn.ReLU(),
+            nn.LeakyReLU(inplace=True),
+            nn.Dropout(p=0.5),
             nn.Linear(128, img_size),
             nn.BatchNorm1d(img_size),
-            nn.ReLU(),
+            nn.LeakyReLU(inplace=True),
         )
 
         # discriminator: image [matrix] -> label (0-fake, 1-real)
@@ -33,7 +35,13 @@ class GAN(torch.nn.Module):
     def generator_forward(self, z):
         img = self.generator(z)
         return img
+    
+
 
     def discriminator_forward(self, img):
         pred = self.discriminator(img)
         return pred.view(-1)
+
+
+def wasserstein_loss(y_real, y_fake):
+    return abs(torch.mean(y_real) - torch.mean(y_fake))

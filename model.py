@@ -20,6 +20,7 @@ class GAN(torch.nn.Module):
             nn.Linear(128, img_size),
             nn.BatchNorm1d(img_size),
             nn.LeakyReLU(inplace=True),
+            nn.Tanh()
         )
 
         # discriminator: image [matrix] -> label (0-fake, 1-real)
@@ -41,7 +42,3 @@ class GAN(torch.nn.Module):
     def discriminator_forward(self, img):
         pred = self.discriminator(img)
         return pred.view(-1)
-
-
-def wasserstein_loss(y_real, y_fake):
-    return abs(torch.mean(y_real) - torch.mean(y_fake))

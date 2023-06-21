@@ -11,9 +11,9 @@ class CustomDataset(Dataset):
             next(reader)
             for row in reader:
                 if transformation is not None:
-                    self.data.append([row[0], transformation(np.reshape(row[1:], (28, 28)).astype(float)).reshape(28, 28)])
+                    self.data.append([row[0], transformation(np.reshape(row[1:], (28, 28)).astype(float)).reshape(1, 28, 28)])
                 else:
-                    self.data.append([row[0], torch.tensor(np.reshape(row[1:], (28, 28)).astype(float))])
+                    self.data.append([row[0], torch.tensor(np.reshape(row[1:], (1, 28, 28)).astype(float))])
     
     def __len__(self):
         return len(self.data)

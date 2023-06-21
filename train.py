@@ -25,7 +25,7 @@ def train_model(data_path, model_path):
     random_seed = 123
     generator_learning_rate = 0.001
     discriminator_learning_rate = 0.001
-    NUM_EPOCHS = 100
+    NUM_EPOCHS = 30
     BATCH_SIZE = 128
     LATENT_DIM = 100 # latent vectors dimension [z]
     IMG_SHAPE = (1, 28, 28) # MNIST has 1 color channel, each image 28x8 pixels
@@ -39,7 +39,7 @@ def train_model(data_path, model_path):
 
     data_augmentation = transforms.Compose([
         transforms.ToTensor(),
-        transforms.RandomRotation(10)
+        transforms.RandomRotation(20)
     ])
 
     #datasetW
@@ -68,13 +68,13 @@ def train_model(data_path, model_path):
     all_data_loader = DataLoader(dataset=all_data, batch_size=BATCH_SIZE, shuffle=True)
 
     # # Checking the dataset
-    # for images, labels in train_loader:
+    # for images, labels in train_loader_augmented:
     #     print('Image batch dimensions:', images.shape)
     #     print('Image label dimensions:', labels.shape)
     #     break
 
     # # let's see some digits
-    # examples = enumerate(train_loader)
+    # examples = enumerate(train_loader_augmented)
     # batch_idx, (example_data, example_targets) = next(examples)
     # print("shape: \n", example_data.shape)
     # fig = plt.figure()
@@ -107,7 +107,7 @@ def train_model(data_path, model_path):
         model = model.train()
         for batch_idx, (features, targets) in enumerate(all_data_loader):
             features = (features - 0.5) * 2.0 # normalize between [-1, 1]
-            features = features.view(-1, IMG_SIZE).to(device)
+            features = features.to(device)
             targets = targets.to(device)
 
             # generate fake and real labels
@@ -125,7 +125,7 @@ def train_model(data_path, model_path):
             generated_features = model.generator_forward(z)
 
             # Loss for fooling the discriminator
-            discr_pred = model.discriminator_forward(generated_features)
+            discr_pred = model.discriminator_forward(generated_features.reshape(features.shape))
 
             # here we use the `valid` labels because we want the discriminator to "think"
             # the generated samples are real
@@ -139,11 +139,11 @@ def train_model(data_path, model_path):
             # Train Discriminator
             # --------------------------
 
-            discr_pred_real = model.discriminator_forward(features.view(-1, IMG_SIZE))
+            discr_pred_real = model.discriminator_forward(features)
             real_loss = wasserstein_loss(discr_pred_real, valid)
 
             # here we use the `fake` labels when training the discriminator
-            discr_pred_fake = model.discriminator_forward(generated_features.detach())
+            discr_pred_fake = model.discriminator_forward(generated_features.reshape(features.shape).detach())
             fake_loss = wasserstein_loss(discr_pred_fake, fake)
 
             discr_loss = 0.5 * (real_loss + fake_loss)

@@ -91,12 +91,14 @@ def train_model(data_path, model_path):
     torch.manual_seed(random_seed)
 
     # build the model, send it ti the device
-    model = GAN(LATENT_DIM, IMG_SIZE).to(device)
+    model = GAN(LATENT_DIM).to(device)
 
     # optimizers: we have one for the generator and one for the discriminator
     # that way, we can update only one of the modules, while the other one is "frozen"
-    optim_gener = torch.optim.RMSprop(model.generator.parameters(), lr=generator_learning_rate)
-    optim_discr = torch.optim.RMSprop(model.discriminator.parameters(), lr=discriminator_learning_rate)
+    gen_layers = list(model.generator_fc_layer.parameters()) + list(model.generator_conv_layer.parameters())
+    disc_layers = list(model.discriminator_conv_layer.parameters()) + list(model.discriminator_fc_layer.parameters())
+    optim_gener = torch.optim.RMSprop(gen_layers, lr=generator_learning_rate)
+    optim_discr = torch.optim.RMSprop(disc_layers, lr=discriminator_learning_rate)
 
     # training
     start_time = time.time()

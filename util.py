@@ -26,8 +26,8 @@ def print_results(model_path):
     # visualization
     model.eval()
     # Make new images
-    z = torch.zeros((5, LATENT_DIM)).uniform_(-1.0, 1.0).to(device)
-    # z = torch.randn((5, LATENT_DIM)).to(device)
+    # z = torch.zeros((5, LATENT_DIM)).uniform_(-1.0, 1.0).to(device)
+    z = torch.randn((5, LATENT_DIM)).to(device)
     generated_features = model.generator_forward(z)
     imgs = generated_features.reshape(5, 28, 28)
 

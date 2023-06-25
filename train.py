@@ -24,10 +24,10 @@ def train_model(data_path, model_path):
 
     # Hyperparameters
     random_seed = 123
-    generator_learning_rate = 0.001
-    discriminator_learning_rate = 0.001
-    NUM_EPOCHS = 30
-    BATCH_SIZE = 100
+    generator_learning_rate = 0.002
+    discriminator_learning_rate = 0.002
+    NUM_EPOCHS = 50
+    BATCH_SIZE = 64
     LATENT_DIM = 512 # latent vectors dimension [z]
     IMG_SHAPE = (1, 28, 28) # MNIST has 1 color channel, each image 28x8 pixels
     IMG_SIZE = 1
@@ -100,8 +100,8 @@ def train_model(data_path, model_path):
     disc_layers = list(model.discriminator_conv_layer.parameters()) + list(model.discriminator_fc_layer.parameters())
     optim_gener = torch.optim.RMSprop(gen_layers, lr=generator_learning_rate)
     optim_discr = torch.optim.RMSprop(disc_layers, lr=discriminator_learning_rate)
-    scheduler_gen = ExponentialLR(optim_gener, gamma=0.8)
-    scheduler_disc = ExponentialLR(optim_discr, gamma=0.8)
+    scheduler_gen = ExponentialLR(optim_gener, gamma=0.75)
+    scheduler_disc = ExponentialLR(optim_discr, gamma=0.75)
 
     # training
     start_time = time.time()

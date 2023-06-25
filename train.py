@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torchvision import datasets
 from torchvision import transforms
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import *
 from data import CustomDataset
 if torch.cuda.is_available():
     torch.backends.cudnn.deterministic = True
@@ -26,8 +27,8 @@ def train_model(data_path, model_path):
     generator_learning_rate = 0.001
     discriminator_learning_rate = 0.001
     NUM_EPOCHS = 30
-    BATCH_SIZE = 128
-    LATENT_DIM = 100 # latent vectors dimension [z]
+    BATCH_SIZE = 100
+    LATENT_DIM = 512 # latent vectors dimension [z]
     IMG_SHAPE = (1, 28, 28) # MNIST has 1 color channel, each image 28x8 pixels
     IMG_SIZE = 1
     for x in IMG_SHAPE:
@@ -99,6 +100,8 @@ def train_model(data_path, model_path):
     disc_layers = list(model.discriminator_conv_layer.parameters()) + list(model.discriminator_fc_layer.parameters())
     optim_gener = torch.optim.RMSprop(gen_layers, lr=generator_learning_rate)
     optim_discr = torch.optim.RMSprop(disc_layers, lr=discriminator_learning_rate)
+    scheduler_gen = ExponentialLR(optim_gener, gamma=0.8)
+    scheduler_disc = ExponentialLR(optim_discr, gamma=0.8)
 
     # training
     start_time = time.time()
@@ -113,8 +116,8 @@ def train_model(data_path, model_path):
             targets = targets.to(device)
 
             # generate fake and real labels
-            valid = torch.ones(targets.size(0)).float().to(device)
-            fake = torch.zeros(targets.size(0)).float().to(device)
+            valid = torch.ones(targets.size(0)).float().to(device) * 0.9
+            fake = torch.ones(targets.size(0)).float().to(device) * 0.1
 
             ### FORWARD PASS AND BACKPROPAGATION
 
@@ -161,6 +164,8 @@ def train_model(data_path, model_path):
             if not batch_idx % 100:
                 print ('Epoch: %03d/%03d | Batch %03d/%03d | Gen/Dis Loss: %.4f/%.4f'%(epoch+1, NUM_EPOCHS, batch_idx, len(all_data_loader), gener_loss, discr_loss))
 
+        scheduler_gen.step()
+        scheduler_disc.step()
         print('Time elapsed: %.2f min' % ((time.time() - start_time)/60))
 
     print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))

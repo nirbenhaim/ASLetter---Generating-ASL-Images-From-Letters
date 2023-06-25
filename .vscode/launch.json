@@ -8,7 +8,7 @@
             "name": "Eval True",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "main.py",
             "args": [
                 "--eval", "True",
                 "--model_path", "model.pth",
@@ -22,7 +22,7 @@
             "name": "Eval False",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "main.py",
             "args": [
                 "--model_path", "model.pth",
                 "--data_path", "."

@@ -13,7 +13,7 @@ from model import GAN
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
-from util import wasserstein_loss
+from util import wasserstein_loss, gradient_penalty
 
 CLASS_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 
@@ -26,14 +26,17 @@ def train_model(data_path, model_path):
     random_seed = 123
     generator_learning_rate = 0.002
     discriminator_learning_rate = 0.002
-    NUM_EPOCHS = 50
-    BATCH_SIZE = 64
+    NUM_EPOCHS = 8
+    BATCH_SIZE = 128
     LATENT_DIM = 512 # latent vectors dimension [z]
     IMG_SHAPE = (1, 28, 28) # MNIST has 1 color channel, each image 28x8 pixels
     IMG_SIZE = 1
     for x in IMG_SHAPE:
         IMG_SIZE *= x
-
+    FEATURES_CRITIC = 16
+    FEATURES_GEN = 16
+    CRITIC_ITERATIONS = 5
+    LAMBDA_GP = 10
 
     file_path_train = os.path.join(data_path, 'sign_mnist_train.csv')
     file_path_test = os.path.join(data_path, 'sign_mnist_test.csv')
@@ -126,19 +129,22 @@ def train_model(data_path, model_path):
             # --------------------------
 
             # Make new images
-            z = torch.zeros((targets.size(0), LATENT_DIM)).uniform_(-1.0, 1.0).to(device) # can also be N(0,1)
-            generated_features = model.generator_forward(z)
+            for _ in range(CRITIC_ITERATIONS):
+                z = torch.zeros((targets.size(0), LATENT_DIM)).uniform_(-1.0, 1.0).to(device) # can also be N(0,1)
+                generated_features = model.generator_forward(z)
 
-            # Loss for fooling the discriminator
-            discr_pred = model.discriminator_forward(generated_features.reshape(features.shape))
+                # Loss for fooling the discriminator
+                discr_pred = model.discriminator_forward(generated_features.reshape(features.shape))
 
-            # here we use the `valid` labels because we want the discriminator to "think"
-            # the generated samples are real
-            gener_loss = wasserstein_loss(discr_pred, valid)
+                # here we use the `valid` labels because we want the discriminator to "think"
+                # the generated samples are real
+                gp = gradient_penalty(model, features, generated_features, device=device)
 
-            optim_gener.zero_grad()
-            gener_loss.backward()
-            optim_gener.step()
+                gener_loss = wasserstein_loss(discr_pred, valid) + LAMBDA_GP * gp
+
+                optim_gener.zero_grad()
+                gener_loss.backward()
+                optim_gener.step()
 
             # --------------------------
             # Train Discriminator

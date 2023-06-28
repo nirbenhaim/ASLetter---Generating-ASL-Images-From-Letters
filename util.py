@@ -1,8 +1,11 @@
 import matplotlib.pyplot as plt
 import torch
-from model import GAN
+from model import Generator
+import os
 
-def print_results(model_path):
+CLASS_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+
+def print_results(model_path, chosen_letter=None):
     # setting
     # Device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -10,56 +13,88 @@ def print_results(model_path):
     # Hyperparameters
     # Remember that GANs are highly sensitive to hyper-parameters
     random_seed = 123
-    LATENT_DIM = 512 # latent vectors dimension [z]
-    IMG_SHAPE = (1, 28, 28) # MNIST has 1 color channel, each image 28x8 pixels
-    IMG_SIZE = 1
-    for x in IMG_SHAPE:
-        IMG_SIZE *= x
+    BATCH_SIZE = 128
+    LATENT_DIM = 100
+    NUM_CLASSES = 26
+    NUM_EPOCHS = 30
+    PRINT_NUM = 24
 
     # load model
-    model = GAN(LATENT_DIM).to(device)
+    generator = Generator(LATENT_DIM, NUM_CLASSES).to(device)
     if torch.cuda.is_available() == False:
-        model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+        gen_save_path = os.path.join(model_path, 'generator.pth')
+        generator.load_state_dict(torch.load(gen_save_path, map_location=torch.device('cpu')))
     else:
-        model.load_state_dict(torch.load(model_path))
+        generator.load_state_dict(torch.load(gen_save_path))
 
     # visualization
-    model.eval()
+    generator.eval()
+
     # Make new images
-    # z = torch.zeros((5, LATENT_DIM)).uniform_(-1.0, 1.0).to(device)
-    z = torch.randn((5, LATENT_DIM)).to(device)
-    generated_features = model.generator_forward(z)
-    imgs = generated_features.reshape(5, 28, 28)
+    # z = torch.randn((PRINT_NUM, LATENT_DIM)).to(device)
+    # fake_labels = torch.LongTensor(5).random_(0, NUM_CLASSES-2)
+    # fake_labels_reshape = torch.empty((PRINT_NUM, NUM_CLASSES))
+    # for idx, fake_label in enumerate(fake_labels):
+    #     fake_labels_temp = torch.zeros(1, NUM_CLASSES).squeeze()
+    #     if fake_label == 9:
+    #         fake_label = 24
+    #     fake_labels_temp[fake_label] = 1.
+    #     fake_labels_reshape[idx] = fake_labels_temp
 
-    fig, axes = plt.subplots(nrows=1, ncols=5, figsize=(20, 2.5))
+    # fake_labels_reshape = fake_labels_reshape.to(device)
 
-    for i, ax in enumerate(axes):
-        axes[i].imshow(imgs[i].to(torch.device('cpu')).detach(), cmap='binary')
+    if chosen_letter is None:
+        z = torch.randn((PRINT_NUM, LATENT_DIM)).to(device)
+        fake_labels = torch.linspace(0, PRINT_NUM-1, steps=PRINT_NUM)
+        fake_labels_reshape = torch.empty((PRINT_NUM, NUM_CLASSES))
+        for idx, fake_label in enumerate(fake_labels):
+            fake_labels_temp = torch.zeros(1, NUM_CLASSES).squeeze()
+            if fake_label >= 9.:
+                fake_label += 1.
+            fake_labels_temp[int(fake_label)] = 1.
+            fake_labels_reshape[idx] = fake_labels_temp
 
-    plt.show()
+        fake_labels_reshape = fake_labels_reshape.to(device)
+
+        generated_features = generator.forward(z, fake_labels_reshape)
+        imgs = generated_features.reshape(PRINT_NUM, 28, 28)
+
+        fig, axes = plt.subplots(nrows=4, ncols=6, figsize=(20, 2.5))
+
+        for i in range(4):
+            for j in range(6):
+                axes[i][j].imshow(imgs[i*6+j].to(torch.device('cpu')).detach(), cmap='binary')
+                axes[i][j].title.set_text(CLASS_LIST[int(fake_labels_reshape[i*6+j].argmax())])
+
+        plt.show()
+
+    else:
+        z = torch.randn((PRINT_NUM, LATENT_DIM)).to(device)
+
+        chosen_idx = 0
+        for idx, letter in enumerate(CLASS_LIST):
+            if letter == chosen_letter.upper():
+                chosen_idx = idx
+
+        if CLASS_LIST[chosen_idx] in ['J', 'Z']:
+            print("Cannot print 'J' or 'Z'.")
+            return
+        
+        fake_labels = torch.zeros(PRINT_NUM, NUM_CLASSES)
+        fake_labels[:, chosen_idx] = 1.
+
+        generated_features = generator.forward(z, fake_labels)
+        imgs = generated_features.reshape(PRINT_NUM, 28, 28)
+
+        fig, axes = plt.subplots(nrows=4, ncols=6, figsize=(20, 2.5))
+
+        for i in range(4):
+            for j in range(6):
+                axes[i][j].imshow(imgs[i*6+j].to(torch.device('cpu')).detach(), cmap='binary')
+                axes[i][j].title.set_text(CLASS_LIST[int(fake_labels[i*6+j].argmax())])
+
+        plt.show()
 
 
 def wasserstein_loss(y_real, y_fake):
     return abs(torch.mean(y_real) - torch.mean(y_fake))
-
-
-def gradient_penalty(model, real, fake, device="cpu"):
-    BATCH_SIZE, C, H, W = real.shape
-    alpha = torch.rand((BATCH_SIZE, 1, 1, 1)).repeat(1, C, H, W).to(device)
-    interpolated_images = real * alpha + fake * (1 - alpha)
-
-    # Calculate critic scores
-    mixed_scores = model.discriminator_forward(interpolated_images)
-
-    # Take the gradient of the scores with respect to the images
-    gradient = torch.autograd.grad(
-        inputs=interpolated_images,
-        outputs=mixed_scores,
-        grad_outputs=torch.ones_like(mixed_scores),
-        create_graph=True,
-        retain_graph=True,
-    )[0]
-    gradient = gradient.view(gradient.shape[0], -1)
-    gradient_norm = gradient.norm(2, dim=1)
-    gradient_penalty = torch.mean((gradient_norm - 1) ** 2)
-    return gradient_penalty

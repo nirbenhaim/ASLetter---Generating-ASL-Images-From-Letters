@@ -11,8 +11,9 @@
             "program": "main.py",
             "args": [
                 "--eval", "True",
-                "--model_path", "model.pth",
-                "--data_path", "."
+                "--model_path", "model",
+                "--data_path", ".",
+                "--chosen_letter", "C"
 
             ],
             "console": "integratedTerminal",
@@ -24,7 +25,7 @@
             "request": "launch",
             "program": "main.py",
             "args": [
-                "--model_path", "model.pth",
+                "--model_path", "model",
                 "--data_path", "."
 
             ],

@@ -139,8 +139,8 @@ def train_model(data_path, model_path):
     # save model
     if not os.path.exists(model_path):
         os.makedirs(model_path)
-    gen_save_path = os.join.path(model_path, 'generator.pth')
-    dis_save_path = os.join.path(model_path, 'discriminator.pth')
+    gen_save_path = os.path.join(model_path, 'generator.pth')
+    dis_save_path = os.path.join(model_path, 'discriminator.pth')
     torch.save(generator.state_dict(), gen_save_path)
     torch.save(discriminator.state_dict(), dis_save_path)
 

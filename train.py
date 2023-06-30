@@ -65,8 +65,8 @@ def train_model(data_path, model_path):
             labels = labels.to(device)
 
             # Adversarial ground truths
-            valid = torch.FloatTensor(batch_size, 1).fill_(1.0).to(device)
-            fake = torch.FloatTensor(batch_size, 1).fill_(0.0).to(device)
+            valid = torch.FloatTensor(batch_size, 1).fill_(1.0).to(device) * 0.9
+            fake = torch.FloatTensor(batch_size, 1).fill_(1.0).to(device) * 0.1
 
             # Configure input
             real_imgs = imgs
@@ -127,8 +127,7 @@ def train_model(data_path, model_path):
             gener_costs.append(g_loss.item())
 
             if (i+1) % 100 == 0:
-                print(f"[Epoch {epoch+1}/{NUM_EPOCHS}] [Batch {i+1}/{len(all_data_loader)}] "
-                    f"[D loss: {discr_costs[-1]:.4f}] [G loss: {gener_costs[-1]:.4f}]")
+                print(f"Epoch {epoch+1}/{NUM_EPOCHS} | Batch {i+1}/{len(all_data_loader)} | Gen/ Disc Loss: {gener_costs[-1]:.4f}/{discr_costs[-1]:.4f}")
             
         scheduler_gen.step()
         scheduler_disc.step()

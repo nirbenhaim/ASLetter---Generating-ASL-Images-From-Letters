@@ -21,8 +21,8 @@ def print_results(model_path, chosen_letter=None):
 
     # load model
     generator = Generator(LATENT_DIM, NUM_CLASSES).to(device)
+    gen_save_path = os.path.join(model_path, 'generator.pth')
     if torch.cuda.is_available() == False:
-        gen_save_path = os.path.join(model_path, 'generator.pth')
         generator.load_state_dict(torch.load(gen_save_path, map_location=torch.device('cpu')))
     else:
         generator.load_state_dict(torch.load(gen_save_path))
@@ -83,7 +83,7 @@ def print_results(model_path, chosen_letter=None):
         fake_labels = torch.zeros(PRINT_NUM, NUM_CLASSES)
         fake_labels[:, chosen_idx] = 1.
 
-        generated_features = generator.forward(z, fake_labels)
+        generated_features = generator.forward(z, fake_labels.to(device))
         imgs = generated_features.reshape(PRINT_NUM, 28, 28)
 
         fig, axes = plt.subplots(nrows=4, ncols=6, figsize=(20, 2.5))

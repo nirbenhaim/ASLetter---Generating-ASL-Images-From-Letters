@@ -43,7 +43,7 @@
 | `--chosen_letter`                                             | Letter chosen to be printed, only when purely evaluating                                                                                      |
 
 * In order to use the GAN without traning eval = True, model_path and data_path contains the wanted directory, and in order to get specific letter implement it in chosen_letter. 
-* In order to retarin the GAN eval = False, model_path and data_path contains the wanted directory.
+* In order to train the GAN eval = False, model_path and data_path contains the wanted directory.
 
 ### Refrences
 * [https://www.kaggle.com/datasets/datamunge/sign-language-mnist](https://www.kaggle.com/datasets/datamunge/sign-language-mnist).

@@ -1,17 +1,5 @@
-import time
-import numpy as np
-import matplotlib.pyplot as plt
-import torch
-import torch.nn.functional as F
-from torchvision import datasets
-from torchvision import transforms
-import torch.nn as nn
-from torch.utils.data import DataLoader
-if torch.cuda.is_available():
-    torch.backends.cudnn.deterministic = True
-from model import GAN
 from train import train_model
-from GAN_load import print_results
+from util import print_results
 import argparse
 import os
 from import_dataset import download_mnist_sign_language_train_set, download_mnist_sign_language_test_set
@@ -20,9 +8,10 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--eval', type=bool, required=False, help='eval if true train and eval if false')
-    parser.add_argument('--model_path', type=str, required=True, help='Model save/load path')
-    parser.add_argument('--data_path', type=str, required=True, help='Dataset path')
+    parser.add_argument('--eval', type=bool, required=False, help='Model evaluation if true. Model training and evaluating if false')
+    parser.add_argument('--model_path', type=str, required=True, help='Model save/load directory')
+    parser.add_argument('--data_path', type=str, required=True, help='Dataset save/load directory')
+    parser.add_argument('--chosen_letter', type=str, required=False, help='Letter chosen to be printed, only when purely evaluating')
     args = parser.parse_args()
 
     # download data
@@ -36,7 +25,7 @@ if __name__ == "__main__":
     
     # run model
     if args.eval == True:
-        print_results(args.model_path)
+        print_results(args.model_path, chosen_letter=args.chosen_letter)
     else:
        train_model(args.data_path, args.model_path)
        print_results(args.model_path)

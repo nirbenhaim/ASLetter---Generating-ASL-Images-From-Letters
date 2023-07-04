@@ -1,162 +1,147 @@
-import time
-import matplotlib.pyplot as plt
 import torch
-import torch.nn.functional as F
-from torchvision import datasets
-from torchvision import transforms
+import torch.nn as nn
+import torch.optim as optim
+import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-from data import CustomDataset
-if torch.cuda.is_available():
-    torch.backends.cudnn.deterministic = True
-from model import GAN
+from torch.optim.lr_scheduler import *
 import os
-os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+import time
+from data import CustomDataset
+from model import Generator, Discriminator
+from util import wasserstein_loss
+import matplotlib.pyplot as plt
 
 CLASS_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 
 def train_model(data_path, model_path):
-    # setting
-    # Device
+
+    BATCH_SIZE = 64
+    LATENT_DIM = 100
+    NUM_CLASSES = 26
+    NUM_EPOCHS = 200
+    lr_gen = 5e-3
+    lr_disc = 2e-3
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    # Hyperparameters
-    random_seed = 123
-    generator_learning_rate = 0.001
-    discriminator_learning_rate = 0.001
-    NUM_EPOCHS = 100
-    BATCH_SIZE = 128
-    LATENT_DIM = 100 # latent vectors dimension [z]
-    IMG_SHAPE = (1, 28, 28) # MNIST has 1 color channel, each image 28x8 pixels
-    IMG_SIZE = 1
-    for x in IMG_SHAPE:
-        IMG_SIZE *= x
-
 
     file_path_train = os.path.join(data_path, 'sign_mnist_train.csv')
     file_path_test = os.path.join(data_path, 'sign_mnist_test.csv')
 
-    #dataset
-    # to 0-1 range
     train_dataset = CustomDataset(csv_file=file_path_train)
     
-    test_dataset = CustomDataset(csv_file=file_path_test)
+    test_dataset = CustomDataset(csv_file=file_path_test) 
 
     all_data = train_dataset
 
     for test_data in test_dataset.data:
         all_data.append(test_data)
 
-    train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-
-    test_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=True)
-
     all_data_loader = DataLoader(dataset=all_data, batch_size=BATCH_SIZE, shuffle=True)
 
-    # # Checking the dataset
-    # for images, labels in train_loader:
-    #     print('Image batch dimensions:', images.shape)
-    #     print('Image label dimensions:', labels.shape)
-    #     break
+    generator = Generator(LATENT_DIM, NUM_CLASSES).to(device)
+    discriminator = Discriminator(NUM_CLASSES).to(device)
+    
+    # Loss function
+    adversarial_loss = wasserstein_loss
+    
+    # Optimizers
+    optimizer_G = optim.RMSprop(generator.parameters(), lr=lr_gen)
+    optimizer_D = optim.RMSprop(discriminator.parameters(), lr=lr_disc)
+    scheduler_gen = ExponentialLR(optimizer_G, gamma=0.95)
+    scheduler_disc = ExponentialLR(optimizer_D, gamma=0.95)
 
-    # # let's see some digits
-    # examples = enumerate(test_loader)
-    # batch_idx, (example_data, example_targets) = next(examples)
-    # print("shape: \n", example_data.shape)
-    # fig = plt.figure()
-    # for i in range(6):
-    #     ax = fig.add_subplot(2,3,i+1)
-    #     ax.imshow(example_data[i], cmap='gray', interpolation='none')
-    #     ax.set_title("Ground Truth: {}".format(CLASS_LIST[int(example_targets[i])]))
-    #     ax.set_axis_off()
-    # plt.tight_layout()
-
-    # plt.show()
-
-    # constant the seed
-    torch.manual_seed(random_seed)
-
-    # build the model, send it ti the device
-    model = GAN(LATENT_DIM, IMG_SIZE).to(device)
-
-    # optimizers: we have one for the generator and one for the discriminator
-    # that way, we can update only one of the modules, while the other one is "frozen"
-    optim_gener = torch.optim.SGD(model.generator.parameters(), lr=generator_learning_rate)
-    optim_discr = torch.optim.SGD(model.discriminator.parameters(), lr=discriminator_learning_rate)
-
-    # training
+    torch.manual_seed(123)
     start_time = time.time()
     discr_costs = []
     gener_costs = []
 
+    # Training loop
     for epoch in range(NUM_EPOCHS):
-        model = model.train()
-        for batch_idx, (features, targets) in enumerate(all_data_loader):
-            features = (features - 0.5) * 2.0 # normalize between [-1, 1]
-            features = features.view(-1, IMG_SIZE).to(device)
-            targets = targets.to(device)
+        for i, (imgs, labels) in enumerate(all_data_loader):
+            batch_size = imgs.shape[0]
 
-            # generate fake and real labels
-            valid = torch.ones(targets.size(0)).float().to(device)
-            fake = torch.zeros(targets.size(0)).float().to(device)
+            imgs = (imgs - 0.5) * 2.0
+            imgs = imgs.to(device)
+            labels = labels.to(device)
 
-            ### FORWARD PASS AND BACKPROPAGATION
+            # Adversarial ground truths
+            valid = torch.FloatTensor(batch_size, 1).fill_(1.0).to(device) * 0.9
+            fake = torch.FloatTensor(batch_size, 1).fill_(1.0).to(device) * 0.1
 
-            # --------------------------
-            # Train Generator
-            # --------------------------
+            # Configure input
+            real_imgs = imgs
+            labels = labels.view(labels.size(0), -1)
+            labels_reshape = torch.empty((batch_size, NUM_CLASSES))
+            for idx, label in enumerate(labels):
+                labels_temp = torch.zeros(1, NUM_CLASSES).squeeze()
+                labels_temp[int(label)] = 1.
+                labels_reshape[idx] = labels_temp
 
-            # Make new images
-            z = torch.zeros((targets.size(0), LATENT_DIM)).uniform_(-1.0, 1.0).to(device) # can also be N(0,1)
-            generated_features = model.generator_forward(z)
+            labels_reshape = labels_reshape.to(device)
 
-            # Loss for fooling the discriminator
-            discr_pred = model.discriminator_forward(generated_features)
+            # ---------------------
+            #  Train Discriminator
+            # ---------------------
 
-            # here we use the `valid` labels because we want the discriminator to "think"
-            # the generated samples are real
-            gener_loss = F.binary_cross_entropy(discr_pred, valid)
+            optimizer_D.zero_grad()
 
-            optim_gener.zero_grad()
-            gener_loss.backward()
-            optim_gener.step()
+            # Discriminator loss on real data
+            real_validity = discriminator(real_imgs, labels_reshape)
+            d_real_loss = adversarial_loss(real_validity, valid)
 
-            # --------------------------
-            # Train Discriminator
-            # --------------------------
+            # Discriminator loss on fake data
+            noise = torch.randn(batch_size, LATENT_DIM).to(device)
+            fake_labels = torch.LongTensor(batch_size).random_(0, NUM_CLASSES-2)
+            fake_labels_reshape = torch.empty((batch_size, NUM_CLASSES))
+            for idx, fake_label in enumerate(fake_labels):
+                fake_labels_temp = torch.zeros(1, NUM_CLASSES).squeeze()
+                if fake_label >= 9:
+                    fake_label += 1
+                fake_labels_temp[fake_label] = 1.
+                fake_labels_reshape[idx] = fake_labels_temp
 
-            discr_pred_real = model.discriminator_forward(features.view(-1, IMG_SIZE))
-            real_loss = F.binary_cross_entropy(discr_pred_real, valid)
+            fake_labels_reshape = fake_labels_reshape.to(device)
+            
+            fake_imgs = generator(noise, fake_labels_reshape)
+            fake_validity = discriminator(fake_imgs.detach(), fake_labels_reshape)
+            d_fake_loss = adversarial_loss(fake_validity, fake)
 
-            # here we use the `fake` labels when training the discriminator
-            discr_pred_fake = model.discriminator_forward(generated_features.detach())
-            fake_loss = F.binary_cross_entropy(discr_pred_fake, fake)
+            # Total discriminator loss
+            d_loss = d_real_loss + d_fake_loss
+            d_loss.backward()
+            optimizer_D.step()
 
-            discr_loss = 0.5 * (real_loss + fake_loss)
-            optim_discr.zero_grad()
-            discr_loss.backward()
-            optim_discr.step()
+            # -----------------
+            #  Train Generator
+            # -----------------
 
-            discr_costs.append(discr_loss)
-            gener_costs.append(gener_loss)
+            optimizer_G.zero_grad()
 
+            # Generator loss
+            fake_validity = discriminator(fake_imgs, fake_labels_reshape)
+            g_loss = adversarial_loss(fake_validity, valid)
+            g_loss.backward()
+            optimizer_G.step()
+            
+            discr_costs.append(d_loss.item())
+            gener_costs.append(g_loss.item())
 
-            ### LOGGING
-            if not batch_idx % 100:
-                print ('Epoch: %03d/%03d | Batch %03d/%03d | Gen/Dis Loss: %.4f/%.4f'%(epoch+1, NUM_EPOCHS, batch_idx, len(all_data_loader), gener_loss, discr_loss))
-
+            if (i+1) % 100 == 0:
+                print(f"Epoch {epoch+1}/{NUM_EPOCHS} | Batch {i+1}/{len(all_data_loader)} | Gen/ Disc Loss: {gener_costs[-1]:.4f}/{discr_costs[-1]:.4f}")
+            
+        scheduler_gen.step()
+        scheduler_disc.step()
         print('Time elapsed: %.2f min' % ((time.time() - start_time)/60))
 
     print('Total Training Time: %.2f min' % ((time.time() - start_time)/60))
 
     # save model
-    torch.save(model.state_dict(), model_path)
-
-    # Evaluation
-
-    for idx in range(len(gener_costs)):
-        gener_costs[idx] = gener_costs[idx].cpu().detach().numpy()
-    for idx in range(len(discr_costs)):
-        discr_costs[idx] = discr_costs[idx].cpu().detach().numpy()
+    if not os.path.exists(model_path):
+        os.makedirs(model_path)
+    gen_save_path = os.path.join(model_path, 'generator.pth')
+    dis_save_path = os.path.join(model_path, 'discriminator.pth')
+    torch.save(generator.state_dict(), gen_save_path)
+    torch.save(discriminator.state_dict(), dis_save_path)
 
     ax1 = plt.subplot(1, 1, 1)
     ax1.plot(range(len(gener_costs)), gener_costs, label='Generator loss')

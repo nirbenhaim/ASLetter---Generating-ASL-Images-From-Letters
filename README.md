@@ -12,11 +12,15 @@
  deep learning project - GAN which receives as input a letter in English and produces an image containing the letter as it is indicated in sign language (American Sign Language). 
 
 ### An illustration for the model: 
-![Image of ViT-BYOL](./assets/our_vit_byol.png)
+![Model](./assets/model.jpg)
 
 ## Results
-### original and generated images
-![Image of predictions](./results/images_with_predictions_sigma=0.8.png)
+### original and generated images:
+### original images:
+![original](./assets/amer_sign3.png)
+
+### generated images:
+![generated](./assets/100.png)
 
 ## Files in the repository
 

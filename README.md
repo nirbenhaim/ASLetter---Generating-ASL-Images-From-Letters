@@ -47,3 +47,6 @@
 
 ### Refrences
 * [https://www.kaggle.com/datasets/datamunge/sign-language-mnist](https://www.kaggle.com/datasets/datamunge/sign-language-mnist).
+* [https://github.com/soumith/ganhacks](https://github.com/soumith/ganhacks).
+* Wasserstein GAN - Martin Arjovsky et AL, 2017
+* Conditional Generative Adversarial Nets - Mehdi Mirza et AL, 2014
